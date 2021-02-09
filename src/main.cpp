@@ -15,6 +15,51 @@
 #define DEBUG 1
 #define RX_WAIT 0
 
+// MUX Pins //
+// Select
+#define S0 0
+#define S1 1
+#define S2 2
+#define S3 3
+
+// Signal switch registers ATTiny85 - CD74HC4067
+#define SIG0 4
+
+// Channels
+#define C0 0
+#define C1 1
+#define C2 2
+#define C3 3
+#define C4 4
+#define C5 5
+#define C6 6
+#define C7 7
+#define C8 8
+#define C9 9
+#define C10 10
+#define C11 11
+#define C12 12
+#define C13 13
+#define C14 14
+#define C15 15 // 16 channels.
+
+
+// Solar Panel CW and CCW
+#define ROT_CW 0
+#define ROT_CCW 1
+
+uint8_t current_channel;
+
+const int buflen = 20;
+char linebuf[buflen];
+
+float fl_i;
+float fl_aa;
+float fl_ab;
+uint8_t int_i;
+
+char dtostrf_i[8];
+
 // HEADER
 class SolarPanel;
 class Sensor;
@@ -56,7 +101,7 @@ extern SolarPanel panels[];
 /// INSTANTIATE
 Motor motors[] =
     {
-        {&panels[0], 14, 15}};
+        {&panels[0], C14, C15}};
 
 Sensor sensors[] =
     {
@@ -64,28 +109,7 @@ Sensor sensors[] =
 
 SolarPanel panels[] =
     {
-        {&motors[0], &sensors[0], '\00'}};
-
-// Signal switch registers ATTiny85 - CD74HC4067
-#define S0 0
-#define S1 1
-#define S2 2
-#define S3 3
-#define SIG0 4
-
-#define ROT_CW 0x00
-#define ROT_CCW 0x01
-uint8_t current_channel;
-
-const int buflen = 20;
-char linebuf[buflen];
-
-float fl_i;
-float fl_aa;
-float fl_ab;
-uint8_t int_i;
-
-char dtostrf_i[8];
+        {&motors[0], &sensors[0], NULL}};
 
 int readline()
 {
@@ -185,8 +209,8 @@ void loop()
       }
       dtostrf_i[int_i] = false;
     }
-    prints("\r\n");
-    prints("fl ccw: ");
+    
+    prints("\r\nfl ccw: ");
     fl_i = ToFloatAtCompileTime(panels[0].SENSOR->CCW);
     dtostrf(fl_i, 6, 2, dtostrf_i);
     for (int_i = 0; int_i < 7; int_i++)
@@ -199,9 +223,10 @@ void loop()
       dtostrf_i[int_i] = false;
     }
   }
+  prints("\r\n");
   switch_channel(0); // back to rx - 0000b
 
-  if (fl_aa + 30 <= fl_ab)
+  if (percent_change(fl_aa, fl_ab) > 0.1f)
   {
     turn_motor(panels[0].MOTOR, ROT_CW, (double)1000);
 
@@ -209,7 +234,7 @@ void loop()
 
     prints("mot: cw\r\n");
   }
-  else if (fl_aa >= fl_ab + 30)
+  else if (percent_change(fl_aa, fl_ab) < -0.1f)
   {
     turn_motor(panels[0].MOTOR, ROT_CCW, (double)1000);
 
@@ -361,7 +386,7 @@ void turn_motor(Motor *motor, uint8_t rotation, double duration)
   digitalWrite(SIG0, HIGH);
   delay_ms((double)duration);
   digitalWrite(SIG0, LOW);
-  rotation = '\00';
+  rotation = NULL;
 }
 
 uint8_t get_motor_channel(Motor *motor, uint8_t rotation)
