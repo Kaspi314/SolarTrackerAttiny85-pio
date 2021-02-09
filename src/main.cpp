@@ -43,7 +43,6 @@
 #define C14 14
 #define C15 15 // 16 channels.
 
-
 // Solar Panel CW and CCW
 #define ROT_CW 0
 #define ROT_CCW 1
@@ -107,7 +106,7 @@ Motor motors[] =
 
 Sensor sensors[] =
     {
-        {&panels[0], 5, 6}};
+        {&panels[0], C5, C6}}; // These have the same power consumption on Signal pins.
 
 SolarPanel panels[] =
     {
@@ -211,7 +210,7 @@ void loop()
       }
       dtostrf_i[int_i] = false;
     }
-    
+
     prints("\r\nfl ccw: ");
     fl_i = ToFloatAtCompileTime(panels[0].SENSOR->CCW);
     dtostrf(fl_i, 6, 2, dtostrf_i);
