@@ -226,20 +226,18 @@ void loop()
   prints("\r\n");
   switch_channel(0); // back to rx - 0000b
 
-  if (percent_change(fl_aa, fl_ab) > 0.1f)
+  if (percent_change(fl_aa, fl_ab) > 0.15f)
   {
     turn_motor(panels[0].MOTOR, ROT_CW, (double)1000);
 
     switch_channel(1);
-
     prints("mot: cw\r\n");
   }
-  else if (percent_change(fl_aa, fl_ab) < -0.1f)
+  else if (percent_change(fl_aa, fl_ab) < -0.15f)
   {
     turn_motor(panels[0].MOTOR, ROT_CCW, (double)1000);
 
     switch_channel(1);
-
     prints("mot: ccw\r\n");
   }
   else
