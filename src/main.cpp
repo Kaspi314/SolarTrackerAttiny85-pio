@@ -48,6 +48,8 @@
 #define ROT_CW 0
 #define ROT_CCW 1
 
+float percent_diff = 0.10f;
+
 uint8_t current_channel;
 
 const int buflen = 20;
@@ -226,14 +228,14 @@ void loop()
   prints("\r\n");
   switch_channel(0); // back to rx - 0000b
 
-  if (percent_change(fl_aa, fl_ab) > 0.15f)
+  if (percent_change(fl_aa, fl_ab) > percent_diff)
   {
     turn_motor(panels[0].MOTOR, ROT_CW, (double)1000);
 
     switch_channel(1);
     prints("mot: cw\r\n");
   }
-  else if (percent_change(fl_aa, fl_ab) < -0.15f)
+  else if (percent_change(fl_aa, fl_ab) < -percent_diff)
   {
     turn_motor(panels[0].MOTOR, ROT_CCW, (double)1000);
 
