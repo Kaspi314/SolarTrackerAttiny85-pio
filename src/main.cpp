@@ -8,10 +8,8 @@
 #include "pu_config.h"
 #include <stdlib.h>
 
-
 #include "multiplex_hc4076.h"
 #include "solar_panel.h"
-
 
 #define DEBUG 1
 #define RX_WAIT 0
@@ -19,7 +17,6 @@
 bool rx_wdr_flag;
 
 float percent_diff = 0.10f;
-
 
 const int buflen = 20;
 char linebuf[buflen];

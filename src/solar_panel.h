@@ -36,17 +36,16 @@ public:
 
 class SP_Util
 {
-    public:
-    float fl_i;
-    float fl_aa;
-    float fl_ab;
-    uint8_t int_i;
-    char dtostrf_i[8];
+public:
+  float fl_i;
+  float fl_aa;
+  float fl_ab;
+  uint8_t int_i;
+  char dtostrf_i[8];
 };
 
 extern SolarPanel panels[];
 extern SP_Util sputil;
-
 
 void read_sensor(Sensor *sensor, uint8_t dir);
 void turn_motor(Motor *motor, uint8_t rotation, double duration);

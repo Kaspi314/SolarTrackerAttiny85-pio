@@ -6,7 +6,7 @@ uint8_t current_channel;
 
 void mp_setup()
 {
-      // Setup pins for multiplexer CD74HC4067
+  // Setup pins for multiplexer CD74HC4067
   pinMode(S0, OUTPUT);
   pinMode(S1, OUTPUT);
   pinMode(S2, OUTPUT);
