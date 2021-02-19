@@ -1,10 +1,6 @@
-// CPU freq for delay
-#ifndef F_CPU
-#define F_CPU 8000000UL
-#endif
-
-#define __DELAY_BACKWARD_COMPATIBLE__
-
+#include "watchdog_t.h"
+#include "delay_msus.h"
+#include "main.h"
 #include "Arduino.h"
 
 #include "picoUART.h"
@@ -12,105 +8,21 @@
 #include "pu_config.h"
 #include <stdlib.h>
 
+
+#include "multiplex_hc4076.h"
+#include "solar_panel.h"
+
+
 #define DEBUG 1
 #define RX_WAIT 0
 
-// MUX Pins //
-// Select
-#define S0 0
-#define S1 1
-#define S2 2
-#define S3 3
-
-// Signal switch registers ATTiny85 - CD74HC4067
-#define SIG0 4
-
-// Channels
-#define C0 0
-#define C1 1
-#define C2 2
-#define C3 3
-#define C4 4
-#define C5 5
-#define C6 6
-#define C7 7
-#define C8 8
-#define C9 9
-#define C10 10
-#define C11 11
-#define C12 12
-#define C13 13
-#define C14 14
-#define C15 15 // 16 channels.
-
-// Solar Panel CW and CCW
-#define ROT_CW 0
-#define ROT_CCW 1
+bool rx_wdr_flag;
 
 float percent_diff = 0.10f;
 
-uint8_t current_channel;
 
 const int buflen = 20;
 char linebuf[buflen];
-
-float fl_i;
-float fl_aa;
-float fl_ab;
-uint8_t int_i;
-
-char dtostrf_i[8];
-
-// HEADER
-class SolarPanel;
-class Sensor;
-class Motor;
-int readline();
-void delay_ms(double __ms);
-void delay_us(double __us);
-void switch_channel(uint8_t channel);
-void read_sensor(Sensor *sensor, uint8_t dir);
-void turn_motor(Motor *motor, uint8_t rotation, double duration);
-uint8_t get_motor_channel(Motor *motor, uint8_t rotation);
-float percent_change(float fl_A, float fl_B);
-constexpr float ToFloatAtCompileTime(uint8_t u8);
-
-class Motor
-{
-public:
-  SolarPanel *PANEL;
-  uint8_t CW;
-  uint8_t CCW;
-};
-class Sensor
-{
-public:
-  SolarPanel *PANEL;
-  uint8_t CW;
-  uint8_t CCW;
-};
-class SolarPanel
-{
-public:
-  Motor *MOTOR;
-  Sensor *SENSOR;
-  uint8_t POSITION;
-};
-
-extern SolarPanel panels[];
-
-/// INSTANTIATE
-Motor motors[] =
-    {
-        {&panels[0], C14, C15}};
-
-Sensor sensors[] =
-    {
-        {&panels[0], C5, C6}}; // These have the same power consumption on Signal pins.
-
-SolarPanel panels[] =
-    {
-        {&motors[0], &sensors[0], NULL}};
 
 int readline()
 {
@@ -131,278 +43,121 @@ int readline()
 void setup()
 {
   // Setup pins for multiplexer CD74HC4067
-  pinMode(S0, OUTPUT);
-  pinMode(S1, OUTPUT);
-  pinMode(S2, OUTPUT);
-  pinMode(S3, OUTPUT);
-  switch_channel(0);
+  mp_setup();
+  rx_wdr_flag = false;
 
   // Switch multiplexer to TX output 0001b
-  switch_channel(1);
-  prints("\nrxISR line echo\n");
-  switch_channel(0); // back to rx
+  mp_channel(1);
+  prints("\nrxISR.\n");
+  mp_channel(0); // back to rx
+  wd_setup();
 }
 
 void loop()
 {
-  if (RX_WAIT)
+  if (RX_WAIT || rx_wdr_flag)
   {
     if (purx_dataready())
     {
       readline();
       // Switch multiplexer to TX output 0001b
-      switch_channel(1);
+      mp_channel(1);
 
       prints("got: ");
       prints(linebuf);
 
-      switch_channel(0);
+      mp_channel(0);
     }
   }
+  rx_wdr_flag = true;
   // Switch multiplexer to analog in - 0010b
-  switch_channel(panels[0].SENSOR->CW);
+  mp_channel(panels[0].SENSOR->CW);
   delay(5);
-  fl_i = analogRead(A2);
-  fl_aa = fl_i;
+  sputil.fl_i = analogRead(A2);
+  sputil.fl_aa = sputil.fl_i;
 
   // Switch to TX out from 0010b to 0001b
-  switch_channel(1);
-  dtostrf(fl_i, 6, 2, dtostrf_i);
-  for (int_i = 0; int_i < 7; int_i++)
+  mp_channel(1);
+  dtostrf(sputil.fl_i, 6, 2, sputil.dtostrf_i);
+  for (sputil.int_i = 0; sputil.int_i < 7; sputil.int_i++)
   {
-    if (dtostrf_i[int_i])
+    if (sputil.dtostrf_i[sputil.int_i])
     {
 
-      putx(dtostrf_i[int_i]);
+      putx(sputil.dtostrf_i[sputil.int_i]);
     }
-    dtostrf_i[int_i] = false;
+    sputil.dtostrf_i[sputil.int_i] = false;
   }
   putx(',');
-  switch_channel(panels[0].SENSOR->CCW);
+  mp_channel(panels[0].SENSOR->CCW);
   delay(5);
-  fl_i = analogRead(A2);
-  fl_ab = fl_i;
+  sputil.fl_i = analogRead(A2);
+  sputil.fl_ab = sputil.fl_i;
 
   // Switch to TX out from 0010b to 0001b
-  switch_channel(1);
-  dtostrf(fl_i, 6, 2, dtostrf_i);
-  for (int_i = 0; int_i < 7; int_i++)
+  mp_channel(1);
+  dtostrf(sputil.fl_i, 6, 2, sputil.dtostrf_i);
+  for (sputil.int_i = 0; sputil.int_i < 7; sputil.int_i++)
   {
-    if (dtostrf_i[int_i])
+    if (sputil.dtostrf_i[sputil.int_i])
     {
 
-      putx(dtostrf_i[int_i]);
+      putx(sputil.dtostrf_i[sputil.int_i]);
     }
-    dtostrf_i[int_i] = false;
+    sputil.dtostrf_i[sputil.int_i] = false;
   }
   prints("\r\n");
   if (DEBUG)
   {
     prints("fl cw: ");
-    fl_i = ToFloatAtCompileTime(panels[0].SENSOR->CW);
-    dtostrf(fl_i, 6, 2, dtostrf_i);
-    for (int_i = 0; int_i < 7; int_i++)
+    sputil.fl_i = ToFloatAtCompileTime(panels[0].SENSOR->CW);
+    dtostrf(sputil.fl_i, 6, 2, sputil.dtostrf_i);
+    for (sputil.int_i = 0; sputil.int_i < 7; sputil.int_i++)
     {
-      if (dtostrf_i[int_i])
+      if (sputil.dtostrf_i[sputil.int_i])
       {
 
-        putx(dtostrf_i[int_i]);
+        putx(sputil.dtostrf_i[sputil.int_i]);
       }
-      dtostrf_i[int_i] = false;
+      sputil.dtostrf_i[sputil.int_i] = false;
     }
 
     prints("\r\nfl ccw: ");
-    fl_i = ToFloatAtCompileTime(panels[0].SENSOR->CCW);
-    dtostrf(fl_i, 6, 2, dtostrf_i);
-    for (int_i = 0; int_i < 7; int_i++)
+    sputil.fl_i = ToFloatAtCompileTime(panels[0].SENSOR->CCW);
+    dtostrf(sputil.fl_i, 6, 2, sputil.dtostrf_i);
+    for (sputil.int_i = 0; sputil.int_i < 7; sputil.int_i++)
     {
-      if (dtostrf_i[int_i])
+      if (sputil.dtostrf_i[sputil.int_i])
       {
 
-        putx(dtostrf_i[int_i]);
+        putx(sputil.dtostrf_i[sputil.int_i]);
       }
-      dtostrf_i[int_i] = false;
+      sputil.dtostrf_i[sputil.int_i] = false;
     }
   }
   prints("\r\n");
-  switch_channel(0); // back to rx - 0000b
+  mp_channel(0); // back to rx - 0000b
 
-  if (percent_change(fl_aa, fl_ab) > percent_diff)
+  if (percent_change(sputil.fl_aa, sputil.fl_ab) > percent_diff)
   {
     turn_motor(panels[0].MOTOR, ROT_CW, (double)1000);
 
-    switch_channel(1);
+    mp_channel(1);
     prints("mot: cw\r\n");
   }
-  else if (percent_change(fl_aa, fl_ab) < -percent_diff)
+  else if (percent_change(sputil.fl_aa, sputil.fl_ab) < -percent_diff)
   {
     turn_motor(panels[0].MOTOR, ROT_CCW, (double)1000);
 
-    switch_channel(1);
+    mp_channel(1);
     prints("mot: ccw\r\n");
   }
   else
   {
-    switch_channel(1);
+    mp_channel(1);
     prints("mot: xx\r\n");
   }
-  switch_channel(0); // back to rx - 0000b
-  fl_aa = 0;
-  fl_ab = 0;
-}
-
-/*
-    This delay uses the avr builtin _delay_ms() which offers a resolution of 1/10th of a ms
-    when the delay is above 262.14 ms / F_CPU in MHz. Up to 6.5535 seconds (at which point we have
-    the overhead of another loop.)
-*/
-void delay_ms(double __ms)
-{
-  uint16_t __ticks;
-  double __tmp;
-  __tmp = ((F_CPU) / 4e3) * __ms;
-  if (__tmp < 1.0)
-    __ticks = 1;
-  else if (__tmp > 65535)
-  {
-    //  __ticks = requested delay in 1/10 ms
-    __ticks = (uint16_t)(__ms * 10.0);
-    while (__ticks)
-    {
-      // wait 1/10 ms
-      _delay_loop_2(((F_CPU) / 4e3) / 10);
-      __ticks--;
-    }
-    return;
-  }
-  else
-    __ticks = (uint16_t)__tmp;
-  _delay_loop_2(__ticks);
-}
-
-void delay_us(double __us)
-{
-  uint16_t __ticks;
-  double __tmp;
-  __tmp = ((F_CPU) / 3e6) * __us;
-  if (__tmp < 1.0)
-    __ticks = 1;
-  else if (__tmp > 255)
-  {
-    _delay_ms(__us / 1000.0);
-    return;
-  }
-  else
-    __ticks = (uint8_t)__tmp;
-  _delay_loop_1(__ticks);
-}
-
-void switch_channel(uint8_t channel)
-{
-  channel &= 0x0F; // bitmask limit to 16 channels.
-  for (int pin = 0; pin < 4; pin++)
-  {
-    if (channel & (1 << pin))
-    {
-      switch (pin)
-      {
-      case 0:
-      {
-        digitalWrite(0, HIGH);
-      }
-      case 1:
-      {
-        digitalWrite(1, HIGH);
-      }
-      case 2:
-      {
-        digitalWrite(2, HIGH);
-      }
-      case 3:
-      {
-        digitalWrite(3, HIGH);
-      }
-      }
-    }
-    else
-    {
-      switch (pin)
-      {
-      case 0:
-      {
-        digitalWrite(0, LOW);
-      }
-      case 1:
-      {
-        digitalWrite(1, LOW);
-      }
-      case 2:
-      {
-        digitalWrite(2, LOW);
-      }
-      case 3:
-      {
-        digitalWrite(3, LOW);
-      }
-      }
-    }
-  }
-  current_channel = channel;
-  return;
-}
-
-void read_sensor(Sensor *sensor, uint8_t dir)
-{
-  pinMode(A2, INPUT);
-  if (dir == ROT_CW)
-  {
-    switch_channel(sensor->CW);
-    fl_aa = analogRead(A2);
-    return;
-  }
-  else
-  {
-    switch_channel(sensor->CCW);
-    fl_ab = analogRead(A2);
-    return;
-  }
-  return;
-}
-
-void turn_motor(Motor *motor, uint8_t rotation, double duration)
-{
-  pinMode(SIG0, OUTPUT);
-  digitalWrite(SIG0, LOW);
-  if (rotation == ROT_CW)
-  {
-    switch_channel(motor->CW);
-  }
-  else
-  {
-    //switch_channel(motor->CCW);
-    switch_channel(motor->CCW);
-  }
-  digitalWrite(SIG0, HIGH);
-  delay_ms((double)duration);
-  digitalWrite(SIG0, LOW);
-  rotation = NULL;
-}
-
-uint8_t get_motor_channel(Motor *motor, uint8_t rotation)
-{
-  if (rotation == ROT_CW)
-  {
-    return motor->CW;
-  }
-  return motor->CCW;
-}
-
-float percent_change(float fl_A, float fl_B)
-{
-  return (fl_B - fl_A) / fl_A;
-}
-
-constexpr float ToFloatAtCompileTime(uint8_t u8)
-{
-  return u8; // implicit conversion to return type
+  mp_channel(0); // back to rx - 0000b
+  sputil.fl_aa = 0;
+  sputil.fl_ab = 0;
 }
