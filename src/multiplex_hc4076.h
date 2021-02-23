@@ -18,9 +18,9 @@
 #define C2 2 //   NC
 #define C3 3 //   NC
 #define C4 4 //   ST0
-#define C5 5 //   S0A
+#define C5 5 //   NC ???
 #define C6 6 //   S0B
-#define C7 7 //   NC
+#define C7 7 //   S0A
 #define C8 8 //   ST1
 #define C9 9 //   S1A
 #define C10 10 // S1B

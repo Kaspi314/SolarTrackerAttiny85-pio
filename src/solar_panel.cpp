@@ -13,7 +13,7 @@ Motor motors[] =
 
 SunSensor sunsensors[] =
     {
-        {&panels[0], C5, C6},
+        {&panels[0], C7, C6},
         {&panels[1], C9, C10}}; // These have the same power consumption on Signal pins.
 RotSensor rotsensors[] =
     {
@@ -34,22 +34,25 @@ void read_sensor_dir(SunSensor *sensor, uint8_t dir)
   if (dir == ROT_CW)
   {
     mp_channel(sensor->CW);
-    sputil.fl_aa = analogRead(SIGA);
+    sputil.sunsense_aa = analogRead(SIGA);
     return;
   }
   else if (dir == ROT_CCW)
   {
     mp_channel(sensor->CCW);
-    sputil.fl_ab = analogRead(SIGA);
+    sputil.sunsense_ab = analogRead(SIGA);
     return;
   }
   return;
 }
 
-void read_sensor(SunSensor *sensor)
+void read_sensor(SunSensor *sensor, long msdelay)
 {
-  read_sensor_dir(sensor, ROT_CW);
+
+  delay_ms(msdelay);
   read_sensor_dir(sensor, ROT_CCW);
+  delay_ms(msdelay);
+  read_sensor_dir(sensor, ROT_CW);
 }
 
 void turn_motor(Motor *motor, uint8_t rotation, double duration)

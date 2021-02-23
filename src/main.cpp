@@ -68,11 +68,10 @@ void loop()
   }
   rx_wdr_flag = true;
   // Switch multiplexer to analog in - 0010b
-  mp_channel(panels[0].SUNSENSOR->CW);
-  delay_ms(5l);
-  read_sensor_dir(panels[0].SUNSENSOR, ROT_CW);
+  
+  read_sensor(panels[0].SUNSENSOR, 10l);
 
-  putx_dtostrf(&(sputil.fl_aa));
+  putx_dtostrf(&(sputil.sunsense_aa));
 
   /*  // Switch to TX out from 0010b to 0001b
   mp_channel(1);
@@ -88,11 +87,14 @@ void loop()
   }
   */
   putx(',');
+  
+  /*
   mp_channel(panels[0].SUNSENSOR->CCW);
   delay_ms(5l);
 
   read_sensor_dir(panels[0].SUNSENSOR, ROT_CCW);
-  putx_dtostrf(&(sputil.fl_ab));
+  */
+  putx_dtostrf(&(sputil.sunsense_ab));
 
   prints("\r\n");
   if (DEBUG)
@@ -124,14 +126,14 @@ void loop()
   prints("\r\n");
   mp_channel(0); // back to rx - 0000b
 
-  if (percent_change(sputil.fl_aa, sputil.fl_ab) > percent_diff)
+  if (percent_change(sputil.sunsense_aa, sputil.sunsense_ab) > percent_diff)
   {
     turn_motor(panels[0].MOTOR, ROT_CW, (double)1000);
 
     mp_channel(1);
     prints("mot: cw\r\n");
   }
-  else if (percent_change(sputil.fl_aa, sputil.fl_ab) < -percent_diff)
+  else if (percent_change(sputil.sunsense_aa, sputil.sunsense_ab) < -percent_diff)
   {
     turn_motor(panels[0].MOTOR, ROT_CCW, (double)1000);
 
@@ -144,8 +146,8 @@ void loop()
     prints("mot: xx\r\n");
   }
   mp_channel(0); // back to rx - 0000b
-  sputil.fl_aa = 0;
-  sputil.fl_ab = 0;
+  sputil.sunsense_aa = 0;
+  sputil.sunsense_ab = 0;
   wdt_reset();
 }
 

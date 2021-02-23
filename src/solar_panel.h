@@ -47,8 +47,8 @@ class SP_Util
 {
 public:
   float fl_i;
-  float fl_aa;
-  float fl_ab;
+  float sunsense_aa;
+  float sunsense_ab;
   uint8_t int_i;
   char dtostrf_i[8];
 };
@@ -57,7 +57,7 @@ extern SolarPanel panels[];
 extern SP_Util sputil;
 
 void read_sensor_dir(SunSensor *sensor, uint8_t dir);
-void read_sensor(SunSensor *sensor, uint8_t dir);
+void read_sensor(SunSensor *sensor, long msdelay);
 void turn_motor(Motor *motor, uint8_t rotation, double duration);
 uint8_t get_motor_channel(Motor *motor, uint8_t rotation);
 float percent_change(float fl_A, float fl_B);
