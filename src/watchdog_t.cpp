@@ -22,7 +22,11 @@ void wd_setup()
 */
 void wd_enable()
 {
+  #ifdef WDRT8
+  WDTCR = (1 << WDP3) | (0 << WDP2) | (0 << WDP1) | (1 << WDP0);
+  #elif WDRT4
   WDTCR = (1 << WDP3) | (0 << WDP2) | (0 << WDP1) | (0 << WDP0); // set watchdog-timing to 4secs
+  #endif
   WDTCR |= (1 << WDE);                                           // Set watchdog timer to re-boot if triggered to begin with (only add WDIE just before we start sleep)
 }
 /*

@@ -68,14 +68,15 @@ void loop()
   }
   rx_wdr_flag = true;
   // Switch multiplexer to analog in - 0010b
-  mp_channel(panels[0].SENSOR->CW);
-  delay(5);
-  sputil.fl_i = analogRead(A2);
-  sputil.fl_aa = sputil.fl_i;
+  mp_channel(panels[0].SUNSENSOR->CW);
+  delay_ms(5l);
+  read_sensor_dir(panels[0].SUNSENSOR, ROT_CW);
 
-  // Switch to TX out from 0010b to 0001b
+  putx_dtostrf(&(sputil.fl_aa));
+
+  /*  // Switch to TX out from 0010b to 0001b
   mp_channel(1);
-  dtostrf(sputil.fl_i, 6, 2, sputil.dtostrf_i);
+  dtostrf(sputil.fl_aa, 6, 2, sputil.dtostrf_i);
   for (sputil.int_i = 0; sputil.int_i < 7; sputil.int_i++)
   {
     if (sputil.dtostrf_i[sputil.int_i])
@@ -85,48 +86,36 @@ void loop()
     }
     sputil.dtostrf_i[sputil.int_i] = false;
   }
+  */
   putx(',');
-  mp_channel(panels[0].SENSOR->CCW);
-  delay(5);
-  sputil.fl_i = analogRead(A2);
-  sputil.fl_ab = sputil.fl_i;
+  mp_channel(panels[0].SUNSENSOR->CCW);
+  delay_ms(5l);
 
-  // Switch to TX out from 0010b to 0001b
-  mp_channel(1);
-  dtostrf(sputil.fl_i, 6, 2, sputil.dtostrf_i);
-  for (sputil.int_i = 0; sputil.int_i < 7; sputil.int_i++)
-  {
-    if (sputil.dtostrf_i[sputil.int_i])
-    {
+  read_sensor_dir(panels[0].SUNSENSOR, ROT_CCW);
+  putx_dtostrf(&(sputil.fl_ab));
 
-      putx(sputil.dtostrf_i[sputil.int_i]);
-    }
-    sputil.dtostrf_i[sputil.int_i] = false;
-  }
   prints("\r\n");
   if (DEBUG)
   {
     prints("fl cw: ");
-    sputil.fl_i = ToFloatAtCompileTime(panels[0].SENSOR->CW);
+    sputil.fl_i = ToFloatAtCompileTime(panels[0].SUNSENSOR->CW);
     dtostrf(sputil.fl_i, 6, 2, sputil.dtostrf_i);
     for (sputil.int_i = 0; sputil.int_i < 7; sputil.int_i++)
     {
       if (sputil.dtostrf_i[sputil.int_i])
       {
-
         putx(sputil.dtostrf_i[sputil.int_i]);
       }
       sputil.dtostrf_i[sputil.int_i] = false;
     }
 
     prints("\r\nfl ccw: ");
-    sputil.fl_i = ToFloatAtCompileTime(panels[0].SENSOR->CCW);
+    sputil.fl_i = ToFloatAtCompileTime(panels[0].SUNSENSOR->CCW);
     dtostrf(sputil.fl_i, 6, 2, sputil.dtostrf_i);
     for (sputil.int_i = 0; sputil.int_i < 7; sputil.int_i++)
     {
       if (sputil.dtostrf_i[sputil.int_i])
       {
-
         putx(sputil.dtostrf_i[sputil.int_i]);
       }
       sputil.dtostrf_i[sputil.int_i] = false;
@@ -157,4 +146,22 @@ void loop()
   mp_channel(0); // back to rx - 0000b
   sputil.fl_aa = 0;
   sputil.fl_ab = 0;
+  wdt_reset();
 }
+
+void putx_dtostrf(float *fla)
+{
+  mp_channel(1);
+  char dtostrf_i[8];
+  dtostrf((*fla), 6, 2, dtostrf_i);
+  for (uint8_t int_i = 0; int_i < 7; int_i++)
+  {
+    if (dtostrf_i[int_i])
+    {
+
+      putx(dtostrf_i[int_i]);
+    }
+  }
+}
+
+

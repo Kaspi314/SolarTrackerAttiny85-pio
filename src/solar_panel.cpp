@@ -8,41 +8,54 @@
 /// INSTANTIATE
 Motor motors[] =
     {
-        {&panels[0], C14, C15}};
+        {&panels[0], C14, C15},
+        {&panels[1], C12, C13}};
 
-Sensor sensors[] =
+SunSensor sunsensors[] =
     {
-        {&panels[0], C5, C6}}; // These have the same power consumption on Signal pins.
+        {&panels[0], C5, C6},
+        {&panels[1], C9, C10}}; // These have the same power consumption on Signal pins.
+RotSensor rotsensors[] =
+    {
+        {&panels[0], 0, 1023, C4},
+        {&panels[1], 0, 1023, C8}};
 
 SolarPanel panels[] =
     {
-        {&motors[0], &sensors[0], 0x00}};
+        {&motors[0], &sunsensors[0], 0x00},
+        {&motors[1], &sunsensors[1], 0x00}};
 
 SP_Util sputil =
     {0.0f, 0.0f, 0.0f, 0x00, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
-void read_sensor(Sensor *sensor, uint8_t dir)
+void read_sensor_dir(SunSensor *sensor, uint8_t dir)
 {
-  pinMode(A2, INPUT);
+  pinMode(SIGA, INPUT);
   if (dir == ROT_CW)
   {
     mp_channel(sensor->CW);
-    sputil.fl_aa = analogRead(A2);
+    sputil.fl_aa = analogRead(SIGA);
     return;
   }
-  else
+  else if (dir == ROT_CCW)
   {
     mp_channel(sensor->CCW);
-    sputil.fl_ab = analogRead(A2);
+    sputil.fl_ab = analogRead(SIGA);
     return;
   }
   return;
 }
 
+void read_sensor(SunSensor *sensor)
+{
+  read_sensor_dir(sensor, ROT_CW);
+  read_sensor_dir(sensor, ROT_CCW);
+}
+
 void turn_motor(Motor *motor, uint8_t rotation, double duration)
 {
-  pinMode(SIG0, OUTPUT);
-  digitalWrite(SIG0, LOW);
+  pinMode(SIGD, OUTPUT);
+  digitalWrite(SIGD, LOW);
   if (rotation == ROT_CW)
   {
     mp_channel(motor->CW);
@@ -52,9 +65,9 @@ void turn_motor(Motor *motor, uint8_t rotation, double duration)
     //mp_channel(motor->CCW);
     mp_channel(motor->CCW);
   }
-  digitalWrite(SIG0, HIGH);
+  digitalWrite(SIGD, HIGH);
   delay_ms((double)duration);
-  digitalWrite(SIG0, LOW);
+  digitalWrite(SIGD, LOW);
   rotation = 0x00;
 }
 
